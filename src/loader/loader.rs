@@ -8,10 +8,12 @@ use rayon::prelude::*;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
+use crate::output::azure_search::AzureSearchOutput;
 
 arg_enum! {
     pub enum SearchEngineType {
-        Elasticsearch
+        Elasticsearch,
+        AzureSearch
     }
 }
 
@@ -21,6 +23,7 @@ fn create_search_engine(
 ) -> Box<dyn SearchEngine> {
     return match search_engine {
         SearchEngineType::Elasticsearch => Box::new(ElasticsearchOutput::new(config_file)),
+        SearchEngineType::AzureSearch => Box::new(AzureSearchOutput::new(config_file))
     };
 }
 #[flame]
