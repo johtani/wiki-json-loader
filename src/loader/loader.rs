@@ -33,7 +33,7 @@ fn load_file(filepath: &str, search_engine: &mut Box<dyn SearchEngine>) -> Resul
         rt.block_on(task).expect("Error?");
     }
     let task = search_engine.close();
-    rt.block_on(task).expect("erro?");
+    rt.block_on(task).expect("error?");
     Ok(format!("Finish: {}", filepath).to_string())
 }
 

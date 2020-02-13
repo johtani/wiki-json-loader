@@ -3,7 +3,11 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 Load JSON files that made by [Wikiextractor](http://medialab.di.unipi.it/wiki/Wikipedia_Extractor) to search engines.
-Now, the tool suppot only JSON files that are created wikiextractor default settings.
+Now, the tool support only JSON files that are created wikiextractor default settings.
+
+## Requirements
+
+* Rust nightly : elasticsearch-rs support only nightly rustc
 
 
 ## Support search engines
