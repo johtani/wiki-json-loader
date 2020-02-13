@@ -2,8 +2,12 @@
 extern crate clap;
 
 use clap::{App, AppSettings, Arg};
+use std::fs::File;
+use flame as f;
+use flamer::flame;
 use wiki_json_loader::loader::loader::{load, SearchEngineType};
 
+#[flame]
 fn main() {
     let app = App::new(crate_name!())
         .setting(AppSettings::DeriveDisplayOrder)
@@ -31,7 +35,6 @@ fn main() {
         )
         .arg(
             Arg::with_name("SEARCH_ENGINE_TYPE")
-                .help("")
                 .help("Search engine type what is sent wiki data")
                 .short("s")
                 .long("search_engine")
@@ -46,7 +49,7 @@ fn main() {
         value_t!(matches, "SEARCH_ENGINE_TYPE", SearchEngineType).unwrap_or_else(|e| e.exit());
 
     match load(input_dir, config_file, &search_engine_type) {
-        Ok(()) => println!("{}", "done"),
+        Ok(()) => { println!("{}", "done"); f::dump_stdout(); f::dump_html(&mut File::create("./flame.html").unwrap()).unwrap(); } ,
         Err(msg) => println!("{}", msg),
     }
 }

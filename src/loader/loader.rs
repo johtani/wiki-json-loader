@@ -2,6 +2,8 @@ use crate::loader::document::Document;
 use crate::output::elasticsearch_output::{ElasticsearchOutput, SearchEngine};
 use clap::arg_enum;
 use glob::glob;
+use flamer::flame;
+use rayon::prelude::*;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
@@ -20,8 +22,8 @@ fn create_search_engine(
         SearchEngineType::Elasticsearch => Box::new(ElasticsearchOutput::new(config_file)),
     };
 }
-
-fn load_file(filepath: &str, search_engine: &mut Box<dyn SearchEngine>) {
+#[flame]
+fn load_file(filepath: &str, search_engine: &mut Box<dyn SearchEngine>) -> Result<String, String>{
     println!("Reading {}", filepath);
     let mut rt = tokio::runtime::Runtime::new().expect("Fail initializing runtime");
     for line in BufReader::new(File::open(filepath).unwrap()).lines() {
@@ -32,24 +34,27 @@ fn load_file(filepath: &str, search_engine: &mut Box<dyn SearchEngine>) {
     }
     let task = search_engine.close();
     rt.block_on(task).expect("erro?");
+    Ok(format!("Finish: {}", filepath).to_string())
 }
 
 fn parse_document(_line: &str) -> Document {
     Document::new(_line)
 }
 
+#[flame]
 pub fn load(
     input_dir: &str,
     config_file: &str,
     search_engine: &SearchEngineType,
 ) -> Result<(), String> {
-    // create output instance search_engine_type
-    let mut search_engine = create_search_engine(config_file, &search_engine);
     let path = Path::new(input_dir).join(Path::new("**/wiki_*"));
     // read files from input_dir
-    for filepath in glob(path.to_str().unwrap()).unwrap().filter_map(Result::ok) {
+    let files: Vec<_> = glob(path.to_str().unwrap()).unwrap().filter_map(|x| x.ok()).collect();
+    files.par_iter().map(|filepath| {
         // read JSONs from file
-        load_file(filepath.to_str().unwrap(), &mut search_engine);
-    }
+        // create output instance search_engine_type
+        let mut search_engine = create_search_engine(config_file, &search_engine);
+        load_file(filepath.to_str().unwrap(), &mut search_engine)
+    }).filter_map(|x| x.ok()).collect::<String>();
     Ok(())
 }
