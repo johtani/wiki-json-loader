@@ -4,7 +4,6 @@ extern crate clap;
 use clap::{App, AppSettings, Arg};
 use wiki_json_loader::loader::loader::{load, SearchEngineType};
 
-
 fn main() {
     let app = App::new(crate_name!())
         .setting(AppSettings::DeriveDisplayOrder)
@@ -43,7 +42,8 @@ fn main() {
     let matches = app.get_matches();
     let config_file = matches.value_of("CONFIG").unwrap();
     let input_dir = matches.value_of("INPUT_DIR").unwrap();
-    let search_engine_type = value_t!(matches, "SEARCH_ENGINE_TYPE", SearchEngineType).unwrap_or_else(|e| e.exit());
+    let search_engine_type =
+        value_t!(matches, "SEARCH_ENGINE_TYPE", SearchEngineType).unwrap_or_else(|e| e.exit());
 
     match load(input_dir, config_file, &search_engine_type) {
         Ok(()) => println!("{}", "done"),

@@ -20,6 +20,6 @@ $ ./bin/wiki-json-loader -h
 #### Options
 
 ```
-$ ./wiki-json-loader -t <SEARCH_ENGINE_TYPE> <INPUT_DIR>
+$ ./wiki-json-loader -c <SEARCH_ENGINE_CONFIG> -s <SEARCH_ENGINE_TYPE> <INPUT_DIR>
 ```
 

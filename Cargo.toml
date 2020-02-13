@@ -7,7 +7,14 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-elasticsearch = "7.5.2-alpha.1"
+async-trait = "0.1.24"
+bytes = "0.5.4"
 clap = "2.33.0"
+elasticsearch = "7.5.2-alpha.1"
 glob = "0.3.0"
+serde = "1.0.104"
+serde_derive = "1.0.104"
+serde_json = "1.0.47"
+serde_yaml = "0.8.11"
 url = "2.1.1"
+tokio = "0.2.11"

@@ -1,0 +1,29 @@
+{
+  "mappings" : {
+    "properties" : {
+      "id" : {
+        "type" : "keyword"
+      },
+      "text" : {
+        "type" : "text",
+        "analyzer": "kuromoji"
+      },
+      "title" : {
+        "type" : "text",
+        "analyzer": "kuromoji",
+        "fields" : {
+          "keyword" : {
+            "type" : "keyword",
+            "ignore_above" : 256
+          }
+        }
+      },
+      "url" : {
+        "type" : "keyword"
+      }
+    }
+  },
+  "settings": {
+    "number_of_shards": 3
+  }
+}
