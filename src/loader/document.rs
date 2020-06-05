@@ -5,10 +5,47 @@ use std::fmt;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Document {
-    text: String,
-    title: String,
-    url: String,
     pub id: String,
+    title: String,
+    timestamp: String,
+    contents: Vec<String>,
+    headings: Vec<String>,
+    categories: Vec<String>,
+    images: Vec<Image>,
+    links: Vec<Link>
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub enum ImageType {
+    Image,
+    File,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Image {
+    pub target: String,
+    pub target_type: ImageType,
+    pub text: Text,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum Text {
+    LinkText {
+        text: String,
+        #[serde(flatten)]
+        link: Link,
+    },
+    Text {
+        text: String,
+    },
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum Link {
+    ExternalLink { link_target: String },
+    Link { link_target: String },
 }
 
 impl Document {
@@ -21,8 +58,8 @@ impl fmt::Display for Document {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
         write!(
             f,
-            "{{\"id\":\"{}\",\"title\":\"{}\",\"url\":\"{}\",\"text\":\"{}\"}}",
-            self.id, self.title, self.url, self.text
+            "{}",
+            serde_json::to_string(self).unwrap()
         )
     }
 }
