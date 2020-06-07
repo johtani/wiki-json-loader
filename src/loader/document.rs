@@ -6,13 +6,14 @@ use std::fmt;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Document {
     pub id: String,
+    revision_id: String,
     title: String,
     timestamp: String,
     contents: Vec<String>,
     headings: Vec<String>,
     categories: Vec<String>,
     images: Vec<Image>,
-    links: Vec<Link>
+    links: Vec<Link>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -56,10 +57,6 @@ impl Document {
 
 impl fmt::Display for Document {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error> {
-        write!(
-            f,
-            "{}",
-            serde_json::to_string(self).unwrap()
-        )
+        write!(f, "{}", serde_json::to_string(self).unwrap())
     }
 }

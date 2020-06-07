@@ -93,6 +93,7 @@
     }
   },
   "settings": {
-    "number_of_shards": 3
+    "number_of_shards": 3,
+    "refresh_interval": "600s"
   }
 }
