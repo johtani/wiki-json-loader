@@ -113,12 +113,15 @@ impl ElasticsearchOutput {
                 warn!("Bulk Request has some errors. {:?}, {}", successful, doc_id);
                 let items = response_body["items"].as_array().unwrap();
                 for item in items {
-                    let error = item["error"].as_object();
-                    match error {
-                        None => {},
-                        Some(obj) => {
-                            warn!("error type:[{}], reason:[{}]", obj.get("type").unwrap(), obj.get("reason").unwrap());
-                        },
+                    if let Some(index_obj) = item["index"].as_object() {
+                        if index_obj.contains_key("error") {
+                            if let Some(obj) = index_obj["error"].as_object() {
+                                warn!("error id:[{}], type:[{}], reason:[{}]",
+                                      index_obj.get("_id").unwrap(),
+                                      obj.get("type").unwrap(),
+                                      obj.get("reason").unwrap());
+                            }
+                        }
                     }
                 }
             }

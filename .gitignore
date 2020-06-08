@@ -2,5 +2,6 @@
 *.iml
 /target
 
-flame.html
+tmp_dir/flame.html
 *.log
+tmp_dir/**
