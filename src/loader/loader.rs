@@ -26,15 +26,11 @@ fn create_search_engine(
 #[flame]
 fn load_file(filepath: &str, search_engine: &mut Box<dyn SearchEngine>) -> Result<String, String> {
     info!("Reading {}", filepath);
-    let mut rt = tokio::runtime::Runtime::new().expect("Fail initializing runtime");
     for line in BufReader::new(File::open(filepath).unwrap()).lines() {
         let d = parse_document(line.unwrap().as_str());
         search_engine.add_document(d);
-        let task = search_engine.flush();
-        rt.block_on(task).expect("Error?");
     }
-    let task = search_engine.close();
-    rt.block_on(task).expect("error?");
+    search_engine.close();
     Ok(format!("Finish: {}", filepath).to_string())
 }
 
