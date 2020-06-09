@@ -3,6 +3,7 @@ use async_trait::async_trait;
 use elasticsearch::http::request::JsonBody;
 use elasticsearch::http::transport::{SingleNodeConnectionPool, TransportBuilder};
 use elasticsearch::{BulkParts, Elasticsearch};
+use log::{debug, info, warn};
 use serde_json::{json, Value};
 use std::fs::File;
 use url::Url;
@@ -13,8 +14,7 @@ pub trait SearchEngine {
     where
         Self: Sized;
     fn add_document(&mut self, document: Document);
-    async fn flush(&mut self) -> Result<(), Box<dyn std::error::Error>>;
-    async fn close(&mut self) -> Result<(), Box<dyn std::error::Error>>;
+    fn close(&mut self);
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -42,8 +42,8 @@ impl SearchEngine for ElasticsearchOutput {
     fn new(_config_file: &str) -> Self {
         // read config
         let config = load_config(_config_file);
-        println!("url: {}", config.url);
-        println!("buffer_size: {}", config.buffer_size);
+        debug!("url: {}", config.url);
+        debug!("buffer_size: {}", config.buffer_size);
         // TODO Elastic Cloud?
         let url = Url::parse(config.url.as_str()).unwrap();
         let conn_pool = SingleNodeConnectionPool::new(url);
@@ -64,21 +64,38 @@ impl SearchEngine for ElasticsearchOutput {
         self.buffer.push(_document);
     }
 
-    async fn flush(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        if self.buffer.len() == self.config.buffer_size {
-            self.close();
+    fn close(&mut self) {
+        let chunk_size = if self.buffer.len() <= self.config.buffer_size {
+            self.buffer.len()
+        } else {
+            self.config.buffer_size
+        };
+        let mut _rt = tokio::runtime::Runtime::new().expect("Fail initializing runtime");
+        let mut tasks = vec![];
+        for chunk in self.buffer.chunks(chunk_size) {
+            let task = self.proceed_chunk(chunk);
+            tasks.push(task);
         }
-        Ok(())
+
+        for task in tasks {
+            _rt.block_on(task).expect("Error on task...");
+        }
+        self.buffer.clear();
     }
+}
 
-    async fn close(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        println!("Sending document...");
+impl ElasticsearchOutput {
+    pub async fn proceed_chunk(&self, chunk: &[Document]) -> Result<(), Box<dyn std::error::Error>> {
         let mut body: Vec<JsonBody<_>> = Vec::new();
-        for d in self.buffer.iter() {
+        let mut doc_id = String::new();
+        for d in chunk {
+            if doc_id.is_empty() {
+                doc_id.push_str(d.id.as_str());
+            }
             body.push(json!({"index": {"_id": d.id}}).into());
-            body.push( JsonBody::from(serde_json::to_value(d).unwrap()));
+            body.push(JsonBody::from(serde_json::to_value(d).unwrap()));
         }
-
+        info!("Sending {} documents... {}", chunk.len(), doc_id);
         let bulk_response = self
             .client
             .bulk(BulkParts::Index(self.config.index_name.as_str()))
@@ -86,16 +103,30 @@ impl SearchEngine for ElasticsearchOutput {
             .send()
             .await?;
         if !bulk_response.status_code().is_success() {
-            println!("{:?}", bulk_response.status_code());
-            let response_body = bulk_response.read_body::<Value>().await?;
-            println!("{:?}", response_body);
-            let successful = response_body["errors"].as_bool().unwrap() == false;
-            println!("{:?}", successful);
+            warn!("Bulk request has failed. Status Code is {:?}. First doc id is [{}]", bulk_response.status_code(), doc_id);
             panic!("bulk indexing failed")
         } else {
-            println!("response : {}", bulk_response.status_code());
+            info!("response : {}", bulk_response.status_code());
+            let response_body = bulk_response.json::<Value>().await?;
+            let successful = response_body["errors"].as_bool().unwrap() == false;
+            if successful == false {
+                warn!("Bulk Request has some errors. {:?}, {}", successful, doc_id);
+                let items = response_body["items"].as_array().unwrap();
+                for item in items {
+                    if let Some(index_obj) = item["index"].as_object() {
+                        if index_obj.contains_key("error") {
+                            if let Some(obj) = index_obj["error"].as_object() {
+                                warn!("error id:[{}], type:[{}], reason:[{}]",
+                                      index_obj.get("_id").unwrap(),
+                                      obj.get("type").unwrap(),
+                                      obj.get("reason").unwrap());
+                            }
+                        }
+                    }
+                }
+            }
         }
-        self.buffer.clear();
+        info!("Finished bulk request. {}", doc_id);
         Ok(())
     }
 }

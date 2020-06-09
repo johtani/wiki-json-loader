@@ -1,0 +1,99 @@
+{
+  "mappings" : {
+    "properties" : {
+      "id" : {
+        "type" : "keyword"
+      },
+      "revision_id": {
+        "type": "keyword"
+      },
+      "timestamp": {
+        "type": "date"
+      },
+      "title" : {
+        "type" : "text",
+        "analyzer": "kuromoji",
+        "fields" : {
+          "keyword" : {
+            "type" : "keyword",
+            "ignore_above" : 256
+          }
+        }
+      },
+      "headings" : {
+        "type" : "text",
+        "analyzer": "kuromoji",
+        "fields" : {
+          "keyword" : {
+            "type" : "keyword",
+            "ignore_above" : 256
+          }
+        }
+      },
+      "categories" : {
+        "type" : "keyword"
+      },
+      "contents" : {
+        "type" : "text",
+        "analyzer": "kuromoji",
+        "fields" : {
+          "keyword" : {
+            "type" : "keyword",
+            "ignore_above" : 256
+          }
+        }
+      },
+      "images": {
+        "type": "nested",
+         "properties": {
+           "taget": {
+             "type": "keyword"
+           },
+           "target_type": {
+             "type": "keyword"
+           },
+           "text": {
+             "type": "nested",
+             "properties": {
+               "text": {
+                 "type" : "text",
+                 "analyzer": "kuromoji",
+                 "fields" : {
+                   "keyword" : {
+                     "type" : "keyword",
+                     "ignore_above" : 256
+                   }
+                 }
+               },
+               "link_target": {
+                 "type": "keyword"
+               }
+             }
+           }
+         }
+      },
+      "links": {
+        "type": "nested",
+        "properties": {
+          "text": {
+            "type" : "text",
+            "analyzer": "kuromoji",
+            "fields" : {
+              "keyword" : {
+                "type" : "keyword",
+                "ignore_above" : 256
+              }
+            }
+          },
+          "link_target": {
+            "type": "keyword"
+          }
+        }
+      }
+    }
+  },
+  "settings": {
+    "number_of_shards": 3,
+    "refresh_interval": "600s"
+  }
+}

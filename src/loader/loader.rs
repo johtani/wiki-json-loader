@@ -1,12 +1,13 @@
 use crate::loader::document::Document;
 use crate::output::elasticsearch_output::{ElasticsearchOutput, SearchEngine};
 use clap::arg_enum;
-use glob::glob;
 use flamer::flame;
+use glob::glob;
 use rayon::prelude::*;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
+use log::info;
 
 arg_enum! {
     pub enum SearchEngineType {
@@ -23,17 +24,13 @@ fn create_search_engine(
     };
 }
 #[flame]
-fn load_file(filepath: &str, search_engine: &mut Box<dyn SearchEngine>) -> Result<String, String>{
-    println!("Reading {}", filepath);
-    let mut rt = tokio::runtime::Runtime::new().expect("Fail initializing runtime");
+fn load_file(filepath: &str, search_engine: &mut Box<dyn SearchEngine>) -> Result<String, String> {
+    info!("Reading {}", filepath);
     for line in BufReader::new(File::open(filepath).unwrap()).lines() {
         let d = parse_document(line.unwrap().as_str());
         search_engine.add_document(d);
-        let task = search_engine.flush();
-        rt.block_on(task).expect("Error?");
     }
-    let task = search_engine.close();
-    rt.block_on(task).expect("error?");
+    search_engine.close();
     Ok(format!("Finish: {}", filepath).to_string())
 }
 
@@ -47,14 +44,22 @@ pub fn load(
     config_file: &str,
     search_engine: &SearchEngineType,
 ) -> Result<(), String> {
-    let path = Path::new(input_dir).join(Path::new("**/wiki_*"));
+    // TODO
+    let path = Path::new(input_dir).join(Path::new("**/sample_*.json"));
     // read files from input_dir
-    let files: Vec<_> = glob(path.to_str().unwrap()).unwrap().filter_map(|x| x.ok()).collect();
-    files.par_iter().map(|filepath| {
-        // read JSONs from file
-        // create output instance search_engine_type
-        let mut search_engine = create_search_engine(config_file, &search_engine);
-        load_file(filepath.to_str().unwrap(), &mut search_engine)
-    }).filter_map(|x| x.ok()).collect::<String>();
+    let files: Vec<_> = glob(path.to_str().unwrap())
+        .unwrap()
+        .filter_map(|x| x.ok())
+        .collect();
+    files
+        .par_iter()
+        .map(|filepath| {
+            // read JSONs from file
+            // create output instance search_engine_type
+            let mut search_engine = create_search_engine(config_file, &search_engine);
+            load_file(filepath.to_str().unwrap(), &mut search_engine)
+        })
+        .filter_map(|x| x.ok())
+        .collect::<String>();
     Ok(())
 }
