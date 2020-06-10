@@ -45,7 +45,7 @@ pub fn load(
     search_engine: &SearchEngineType,
 ) -> Result<(), String> {
     // TODO
-    let path = Path::new(input_dir).join(Path::new("**/sample_*.json"));
+    let path = Path::new(input_dir).join(Path::new("**/*.json"));
     // read files from input_dir
     let files: Vec<_> = glob(path.to_str().unwrap())
         .unwrap()

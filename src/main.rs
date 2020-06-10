@@ -25,7 +25,7 @@ fn main() {
         .version_short("v")
         .arg(
             Arg::with_name("INPUT_DIR")
-                .help("The directory where JSON files made wikiestractor containing.")
+                .help("The directory where JSON files made wiki-extractor-rs containing. Support only *.json files.")
                 .value_name("INPUT_DIR")
                 .required(true)
                 .takes_value(true),
