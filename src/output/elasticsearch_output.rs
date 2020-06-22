@@ -2,10 +2,13 @@ use crate::loader::document::Document;
 use async_trait::async_trait;
 use elasticsearch::http::request::JsonBody;
 use elasticsearch::http::transport::{SingleNodeConnectionPool, TransportBuilder};
+use elasticsearch::http::StatusCode;
+use elasticsearch::indices::{IndicesCreateParts, IndicesExistsParts};
 use elasticsearch::{BulkParts, Elasticsearch};
 use log::{debug, info, warn};
 use serde_json::{json, Value};
 use std::fs::File;
+use std::io::{Error, Read};
 use url::Url;
 
 #[async_trait]
@@ -14,6 +17,8 @@ pub trait SearchEngine {
     where
         Self: Sized;
     fn add_document(&mut self, document: Document);
+    fn initialize(&self);
+    fn exist_index(&self) -> bool;
     fn close(&mut self);
 }
 
@@ -22,6 +27,7 @@ struct EsConfig {
     url: String,
     buffer_size: usize,
     index_name: String,
+    schema_file: String,
 }
 
 pub struct ElasticsearchOutput {
@@ -35,6 +41,13 @@ fn load_config(config_file: &str) -> EsConfig {
         .expect(format!("config file is not found. {}", config_file).as_str());
     let config: EsConfig = serde_yaml::from_reader(f).expect(format!("Parse Error").as_str());
     return config;
+}
+
+fn load_schema(schema_file: &str) -> Value {
+    let f = File::open(schema_file)
+        .expect(format!("schema file is not found. {}", schema_file).as_str());
+    let schema: Value = serde_json::from_reader(f).expect("schema cannot read...");
+    return schema;
 }
 
 #[async_trait]
@@ -64,6 +77,30 @@ impl SearchEngine for ElasticsearchOutput {
         self.buffer.push(_document);
     }
 
+    fn initialize(&self) {
+        if self.exist_index() {
+            //no-op if index already exists
+            info!(
+                "{} index already exists. skip initialization phase.",
+                &self.config.index_name
+            );
+        } else {
+            // load schema.json from file
+            // -> if not found, panic!
+            // create index with schema file
+            info!("{} index is creating...", &self.config.index_name);
+            let mut _rt = tokio::runtime::Runtime::new().expect("Fail initializing runtime");
+            let task = self.call_indices_create();
+            _rt.block_on(task).expect("Something wrong...")
+        }
+    }
+
+    fn exist_index(&self) -> bool {
+        let mut _rt = tokio::runtime::Runtime::new().expect("Fail initializing runtime");
+        let task = self.call_indices_exists();
+        _rt.block_on(task).expect("Something wrong...")
+    }
+
     fn close(&mut self) {
         let chunk_size = if self.buffer.len() <= self.config.buffer_size {
             self.buffer.len()
@@ -85,7 +122,61 @@ impl SearchEngine for ElasticsearchOutput {
 }
 
 impl ElasticsearchOutput {
-    pub async fn proceed_chunk(&self, chunk: &[Document]) -> Result<(), Box<dyn std::error::Error>> {
+    async fn call_indices_create(&self) -> Result<(), Error> {
+        let schema_json = load_schema(&self.config.schema_file);
+        let response = self
+            .client
+            .indices()
+            .create(IndicesCreateParts::Index(&self.config.index_name))
+            .body(schema_json)
+            .send()
+            .await;
+        match response {
+            Ok(response) => {
+                if !response.status_code().is_success() {
+                    warn!(
+                        "Create index request has failed. Status Code is {:?}.",
+                        response.status_code()
+                    );
+                    // FIXME if ...
+                    panic!("create index failed")
+                } else {
+                    info!("{} index was created.", &self.config.index_name);
+                }
+                return Ok(());
+            }
+            Err(_) => panic!("create index failed"),
+        }
+    }
+
+    async fn call_indices_exists(&self) -> Result<bool, Error> {
+        let indices: [&str; 1] = [&self.config.index_name.as_str()];
+        let result = self
+            .client
+            .indices()
+            .exists(IndicesExistsParts::Index(&indices))
+            .send()
+            .await;
+        match result {
+            Ok(response) => match response.status_code() {
+                StatusCode::NOT_FOUND => return Ok(false),
+                StatusCode::OK => return Ok(true),
+                _ => {
+                    warn!(
+                        "Indices exists request has failed. Status Code is {:?}.",
+                        response.status_code()
+                    );
+                    panic!("Indices exists request failed")
+                }
+            },
+            Err(_) => panic!("Indices exists request failed..."),
+        }
+    }
+
+    pub async fn proceed_chunk(
+        &self,
+        chunk: &[Document],
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let mut body: Vec<JsonBody<_>> = Vec::new();
         let mut doc_id = String::new();
         for d in chunk {
@@ -103,7 +194,11 @@ impl ElasticsearchOutput {
             .send()
             .await?;
         if !bulk_response.status_code().is_success() {
-            warn!("Bulk request has failed. Status Code is {:?}. First doc id is [{}]", bulk_response.status_code(), doc_id);
+            warn!(
+                "Bulk request has failed. Status Code is {:?}. First doc id is [{}]",
+                bulk_response.status_code(),
+                doc_id
+            );
             panic!("bulk indexing failed")
         } else {
             info!("response : {}", bulk_response.status_code());
@@ -116,10 +211,12 @@ impl ElasticsearchOutput {
                     if let Some(index_obj) = item["index"].as_object() {
                         if index_obj.contains_key("error") {
                             if let Some(obj) = index_obj["error"].as_object() {
-                                warn!("error id:[{}], type:[{}], reason:[{}]",
-                                      index_obj.get("_id").unwrap(),
-                                      obj.get("type").unwrap(),
-                                      obj.get("reason").unwrap());
+                                warn!(
+                                    "error id:[{}], type:[{}], reason:[{}]",
+                                    index_obj.get("_id").unwrap(),
+                                    obj.get("type").unwrap(),
+                                    obj.get("reason").unwrap()
+                                );
                             }
                         }
                     }

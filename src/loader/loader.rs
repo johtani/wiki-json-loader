@@ -3,11 +3,11 @@ use crate::output::elasticsearch_output::{ElasticsearchOutput, SearchEngine};
 use clap::arg_enum;
 use flamer::flame;
 use glob::glob;
+use log::info;
 use rayon::prelude::*;
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::Path;
-use log::info;
 
 arg_enum! {
     pub enum SearchEngineType {
@@ -46,6 +46,8 @@ pub fn load(
 ) -> Result<(), String> {
     // TODO
     let path = Path::new(input_dir).join(Path::new("**/*.json"));
+    let initializer = create_search_engine(config_file, &search_engine);
+    initializer.initialize();
     // read files from input_dir
     let files: Vec<_> = glob(path.to_str().unwrap())
         .unwrap()
