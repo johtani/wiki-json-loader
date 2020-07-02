@@ -5,3 +5,4 @@
 tmp_dir/flame.html
 *.log
 tmp_dir/**
+**/*.yaml

@@ -1444,6 +1444,7 @@ dependencies = [
  "glob",
  "log",
  "rayon",
+ "reqwest",
  "serde",
  "serde_derive",
  "serde_json",
