@@ -9,7 +9,7 @@ use std::io::Error;
 
 #[derive(Debug, Serialize, Deserialize)]
 struct UploadResponse {
-    value: Vec<DocResponse>
+    value: Vec<DocResponse>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -18,7 +18,7 @@ struct DocResponse {
     key: String,
     status: bool,
     error_message: Option<String>,
-    status_code: u8
+    status_code: u8,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -197,7 +197,7 @@ impl AzureSearchOutput {
             Err(err) => {
                 error!("{:?}", err);
                 panic!("Indices exists request failed...")
-            },
+            }
         }
     }
 
@@ -225,13 +225,18 @@ impl AzureSearchOutput {
         let response = self
             .client
             .post(
-                format!("{}/docs/index{}", &self.get_service_url(), AzureSearchOutput::get_api_version() ).as_str()
+                format!(
+                    "{}/docs/index{}",
+                    &self.get_service_url(),
+                    AzureSearchOutput::get_api_version()
+                )
+                .as_str(),
             )
             .headers(self.get_headers())
             .body(root_json)
             .send()
             .await?;
-        if let StatusCode::OK = response.status() {
+        if response.is_success() {
             info!("response : {}", response.status());
             let upload_response = response.json::<UploadResponse>().await?;
             for doc_response in upload_response.value {
