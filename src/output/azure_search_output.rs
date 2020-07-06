@@ -236,7 +236,7 @@ impl AzureSearchOutput {
             .body(root_json)
             .send()
             .await?;
-        if response.is_success() {
+        if response.status().is_success() {
             info!("response : {}", response.status());
             let upload_response = response.json::<UploadResponse>().await?;
             for doc_response in upload_response.value {
