@@ -29,6 +29,7 @@ struct AzureSearchConfig {
     schema_file: String,
     //TODO need secure store
     api_key: String,
+    drop_fields: Vec<String>,
 }
 
 pub struct AzureSearchOutput {
@@ -60,7 +61,16 @@ impl SearchEngine for AzureSearchOutput {
         }
     }
 
-    fn add_document(&mut self, _document: Document) {
+    fn add_document(&mut self, mut _document: Document) {
+        // TODO Is it smart??
+        for field in &self.config.drop_fields {
+            let field = field.as_str();
+            match field {
+                "images" => &_document.images.clear(),
+                "links" => &_document.links.clear(),
+                &_ => &(),
+            };
+        }
         self.buffer.push(_document);
     }
 
@@ -204,24 +214,26 @@ impl AzureSearchOutput {
     async fn proceed_chunk(&self, chunk: &[Document]) -> Result<(), Box<dyn std::error::Error>> {
         //FIXME copy fields...
         // need other settings like field copy mapping...
-        //FIXME filter feature during load or create json data...
 
         let mut docs: Vec<String> = vec![];
         let mut doc_id = String::new();
+        let mut chunk_size = 0;
         for d in chunk {
             if doc_id.is_empty() {
                 doc_id.push_str(d.id.as_str());
             }
+
             // read json as hashmap
             //serde_json::to_value(d).unwrap().
             let mut json_string = serde_json::to_string(d).unwrap();
             json_string = json_string.replacen("{", "{\"@search.action\": \"upload\", ", 1);
             docs.push(json_string);
+            chunk_size += 1;
         }
         let root_json = format!("{{ \"value\": [{}]}}", docs.join(", "));
         debug!("root_json is {}", &root_json);
 
-        info!("Sending {} documents... {}", chunk.len(), doc_id);
+        info!("Sending {} documents... {}", chunk_size, doc_id);
         let response = self
             .client
             .post(

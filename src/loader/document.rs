@@ -12,8 +12,8 @@ pub struct Document {
     contents: Vec<String>,
     headings: Vec<String>,
     categories: Vec<String>,
-    images: Vec<Image>,
-    links: Vec<Link>,
+    pub images: Vec<Image>,
+    pub links: Vec<Link>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
