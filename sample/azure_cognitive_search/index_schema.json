@@ -34,7 +34,10 @@
     {
       "name": "contents",
       "type" : "Collection(Edm.String)",
-      "analyzer": "ja.lucene"
+      "analyzer": "ja.lucene",
+      "filterable": false,
+      "sortable": false,
+      "facetable": false
     },
     {
       "name": "images",

@@ -18,7 +18,7 @@ struct DocResponse {
     key: String,
     status: bool,
     error_message: Option<String>,
-    status_code: u8,
+    status_code: u16,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -238,15 +238,24 @@ impl AzureSearchOutput {
             .await?;
         if response.status().is_success() {
             info!("response : {}", response.status());
-            let upload_response = response.json::<UploadResponse>().await?;
-            for doc_response in upload_response.value {
-                if !doc_response.status {
-                    warn!(
-                        "error id:[{}], status_code:[{}], reason:[{}]",
-                        doc_response.key,
-                        doc_response.status_code,
-                        doc_response.error_message.unwrap()
-                    );
+            debug!("{:?}", response);
+            let result = response.json::<UploadResponse>().await;
+            match result {
+                Ok(upload_response) => {
+                    for doc_response in upload_response.value {
+                        if !doc_response.status {
+                            warn!(
+                                "error id:[{}], status_code:[{}], reason:[{}]",
+                                doc_response.key,
+                                doc_response.status_code,
+                                doc_response.error_message.unwrap()
+                            );
+                        }
+                    }
+                }
+                Err(err) => {
+                    warn!("Error parse json from response body. {:?}", err);
+                    panic!("bulk indexing failed.");
                 }
             }
         } else {
