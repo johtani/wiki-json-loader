@@ -3,6 +3,7 @@
 /target
 
 tmp_dir/flame.html
+flame.html
 *.log
 tmp_dir/**
 **/*.yaml
