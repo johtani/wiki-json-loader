@@ -1,0 +1,91 @@
+{
+  "fields" : [
+    {
+      "name": "id",
+      "type": "Edm.String",
+      "key": true,
+      "analyzer": "keyword"
+    },
+    {
+      "name": "revision_id",
+      "type": "Edm.String",
+      "analyzer": "keyword"
+    },
+    {
+      "name": "timestamp",
+      "type": "Edm.DateTimeOffset"
+    },
+    {
+      "name": "title",
+      "type": "Edm.String",
+      "analyzer": "ja.lucene",
+      "filterable": false
+    },
+    {
+      "name": "headings",
+      "type" : "Collection(Edm.String)",
+      "analyzer": "ja.lucene"
+    },
+    {
+      "name": "categories",
+      "type" : "Collection(Edm.String)",
+      "analyzer": "keyword"
+    },
+    {
+      "name": "contents",
+      "type" : "Collection(Edm.String)",
+      "analyzer": "ja.lucene",
+      "filterable": false,
+      "sortable": false,
+      "facetable": false
+    },
+    {
+      "name": "images",
+      "type": "Collection(Edm.ComplexType)",
+      "fields": [
+        {
+          "name": "target",
+          "type": "Edm.String",
+          "analyzer": "keyword"
+        },
+        {
+          "name": "target_type",
+          "type": "Edm.String",
+          "analyzer": "keyword"
+        },
+        {
+          "name": "text",
+          "type": "Edm.ComplexType",
+          "fields": [
+            {
+              "name": "text",
+              "type": "Edm.String",
+              "analyzer": "ja.lucene"
+            },
+            {
+              "name": "link_target",
+              "type": "Edm.String",
+              "analyzer": "keyword"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "links",
+      "type": "Collection(Edm.ComplexType)",
+      "fields": [
+        {
+          "name": "text",
+          "type": "Edm.String",
+          "analyzer": "ja.lucene"
+        },
+        {
+          "name": "link_target",
+          "type": "Edm.String",
+          "analyzer": "keyword"
+        }
+      ]
+    }
+  ]
+}

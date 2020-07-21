@@ -8,7 +8,7 @@ use elasticsearch::{BulkParts, Elasticsearch};
 use log::{debug, info, warn};
 use serde_json::{json, Value};
 use std::fs::File;
-use std::io::{Error, Read};
+use std::io::Error;
 use url::Url;
 
 #[async_trait]
@@ -43,7 +43,7 @@ fn load_config(config_file: &str) -> EsConfig {
     return config;
 }
 
-fn load_schema(schema_file: &str) -> Value {
+pub fn load_schema(schema_file: &str) -> Value {
     let f = File::open(schema_file)
         .expect(format!("schema file is not found. {}", schema_file).as_str());
     let schema: Value = serde_json::from_reader(f).expect("schema cannot read...");

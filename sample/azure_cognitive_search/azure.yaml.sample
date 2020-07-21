@@ -1,0 +1,6 @@
+service_name: "YOUR_SERVICE_NAME"
+buffer_size: 100
+index_name: wiki-test
+schema_file: "sample/azure_cognitive_search/index_schema.json"
+api_key: "YOUR_API_KEY"
+drop_fields: ["images", "links"]

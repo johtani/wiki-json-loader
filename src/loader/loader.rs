@@ -1,4 +1,5 @@
 use crate::loader::document::Document;
+use crate::output::azure_search_output::AzureSearchOutput;
 use crate::output::elasticsearch_output::{ElasticsearchOutput, SearchEngine};
 use clap::arg_enum;
 use flamer::flame;
@@ -11,7 +12,8 @@ use std::path::Path;
 
 arg_enum! {
     pub enum SearchEngineType {
-        Elasticsearch
+        Elasticsearch,
+        AzureSearch
     }
 }
 
@@ -21,6 +23,7 @@ fn create_search_engine(
 ) -> Box<dyn SearchEngine> {
     return match search_engine {
         SearchEngineType::Elasticsearch => Box::new(ElasticsearchOutput::new(config_file)),
+        SearchEngineType::AzureSearch => Box::new(AzureSearchOutput::new(config_file)),
     };
 }
 #[flame]
