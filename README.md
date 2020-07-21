@@ -12,8 +12,11 @@ Now, the tool support only JSON files that are created wiki-extractor-rs default
 ## Support search engines
 
 * Elasticsearch >=7.x
+* Azure Cognitive Search
 
 ## Usage
+
+Sample schema and setting yaml in sample directory.
 
 ### Prepare
 
