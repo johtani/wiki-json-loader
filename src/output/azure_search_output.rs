@@ -4,6 +4,8 @@ use crate::output::elasticsearch_output::SearchEngine;
 use log::{debug, error, info, warn};
 use reqwest::header::{HeaderMap, HeaderValue};
 use reqwest::{Client, StatusCode};
+use serde_json::Value;
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::Error;
 
@@ -30,12 +32,60 @@ struct AzureSearchConfig {
     //TODO need secure store
     api_key: String,
     drop_fields: Vec<String>,
+    copy_fields: Vec<String>,
 }
 
 pub struct AzureSearchOutput {
     client: Client,
-    buffer: Vec<Document>,
+    buffer: Vec<AzureDocument>,
     config: AzureSearchConfig,
+}
+
+struct AzureDocument {
+    data: HashMap<String, Value>,
+}
+
+impl AzureDocument {
+    fn new(_document: &Document, _config: &AzureSearchConfig) -> Self {
+        // copy field value to AzureDocument hashmap
+        let mut data = _document.to_hashmap();
+        data.insert(String::from("@search.action"), Value::from("upload"));
+        // impl copy_fields
+        for copy_field in &_config.copy_fields {
+            match parse_copy_field(copy_field) {
+                Some((source, target)) => {
+                    if data.contains_key(&source) {
+                        data.insert(target, data.get(&source).unwrap().clone());
+                    } else {
+                        warn!("there is no {} field in document.", source);
+                    }
+                }
+                None => warn!("copy_fields setting parse error. setting is {}", copy_field),
+            };
+        }
+
+        AzureDocument { data }
+    }
+
+    fn get_id(&self) -> String {
+        return self.data.get("id").unwrap().to_string();
+    }
+
+    fn to_json_string(&self) -> String {
+        return serde_json::to_string(&self.data).unwrap();
+    }
+}
+
+fn parse_copy_field(setting: &str) -> Option<(String, String)> {
+    let splitted_setting: Vec<&str> = setting.split("=>").collect();
+    if splitted_setting.len() == 2 {
+        return Some((
+            splitted_setting[0].to_string(),
+            splitted_setting[1].to_string(),
+        ));
+    } else {
+        return None;
+    }
 }
 
 fn load_config(config_file: &str) -> AzureSearchConfig {
@@ -71,7 +121,8 @@ impl SearchEngine for AzureSearchOutput {
                 &_ => &(),
             };
         }
-        self.buffer.push(_document);
+        let azure_doc = AzureDocument::new(&_document, &self.config);
+        self.buffer.push(azure_doc);
     }
 
     fn initialize(&self) {
@@ -211,7 +262,10 @@ impl AzureSearchOutput {
         }
     }
 
-    async fn proceed_chunk(&self, chunk: &[Document]) -> Result<(), Box<dyn std::error::Error>> {
+    async fn proceed_chunk(
+        &self,
+        chunk: &[AzureDocument],
+    ) -> Result<(), Box<dyn std::error::Error>> {
         //FIXME copy fields...
         // need other settings like field copy mapping...
 
@@ -220,13 +274,13 @@ impl AzureSearchOutput {
         let mut chunk_size = 0;
         for d in chunk {
             if doc_id.is_empty() {
-                doc_id.push_str(d.id.as_str());
+                doc_id.push_str(d.get_id().as_str());
             }
 
             // read json as hashmap
             //serde_json::to_value(d).unwrap().
-            let mut json_string = serde_json::to_string(d).unwrap();
-            json_string = json_string.replacen("{", "{\"@search.action\": \"upload\", ", 1);
+            let json_string = d.to_json_string();
+
             docs.push(json_string);
             chunk_size += 1;
         }
