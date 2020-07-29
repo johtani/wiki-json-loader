@@ -31,7 +31,9 @@ struct AzureSearchConfig {
     schema_file: String,
     //TODO need secure store
     api_key: String,
+    #[serde(default = "Vec::new")]
     drop_fields: Vec<String>,
+    #[serde(default = "Vec::new")]
     copy_fields: Vec<String>,
 }
 
