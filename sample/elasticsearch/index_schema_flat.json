@@ -44,7 +44,7 @@
         }
       },
       "images": {
-        "type": "nested",
+        "type": "object",
          "properties": {
            "taget": {
              "type": "keyword"
@@ -53,7 +53,7 @@
              "type": "keyword"
            },
            "text": {
-             "type": "nested",
+             "type": "object",
              "properties": {
                "text": {
                  "type" : "text",
@@ -73,7 +73,7 @@
          }
       },
       "links": {
-        "type": "nested",
+        "type": "object",
         "properties": {
           "text": {
             "type" : "text",
