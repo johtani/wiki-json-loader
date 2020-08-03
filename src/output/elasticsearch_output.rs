@@ -44,6 +44,7 @@ fn load_config(config_file: &str) -> EsConfig {
 }
 
 pub fn load_schema(schema_file: &str) -> Value {
+    info!("schema file is {}", schema_file);
     let f = File::open(schema_file)
         .expect(format!("schema file is not found. {}", schema_file).as_str());
     let schema: Value = serde_json::from_reader(f).expect("schema cannot read...");
