@@ -20,8 +20,6 @@ Sample schema and setting yaml in sample directory.
 
 ### Prepare
 
-**Must to create index before run this command.**
-
 For Elasticsearch, sample index settings/mappings in [./sample/elasticsearch_wiki_extractor_rs](sample/elasticsearch) directory.
 
 ### Load command
