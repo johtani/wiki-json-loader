@@ -20,10 +20,14 @@ Sample schema and setting yaml in sample directory.
 
 ### Prepare
 
-For Elasticsearch, sample index settings/mappings in [./sample/elasticsearch_wiki_extractor_rs](sample/elasticsearch) directory.
+For Elasticsearch, sample index settings/mappings in [./sample/elasticsearch](sample/elasticsearch) directory.
+For Azure Cognitive Search, sample index settings/mappings in [./sample/azure_cognitive_search](sample/azure_cognitive_search) directory.
+
+The command will create an index with with schema json if the index doesn't exist.
 
 ### Load command
 Show help with the following command::
+
 ```
 $ ./bin/wiki-json-loader -h
 ```
