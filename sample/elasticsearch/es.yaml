@@ -1,0 +1,4 @@
+url: "http://localhost:9200"
+buffer_size: 3000
+index_name: wiki_test
+schema_file: "sample/elasticsearch/index_schema.json"
